@@ -1,0 +1,702 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Laboratorio del campo giratorio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@500;600&family=STIX+Two+Text:ital@0;1&display=swap">
+<style>
+/* Layout: tablero de mando a la izquierda; a la derecha la máquina en corte, la suma de campos,
+   el osciloscopio y la cadena de ecuaciones que se recalcula con cada control. */
+:root {
+  --bg: #EEF1F4; --panel: #FFFFFF; --panel-2: #F6F8FA; --ink: #15202B; --muted: #566577; --line: #D3DBE3;
+  --copper: #B4621C; --copper-soft: #F6E7D8; --core: #C9D2DC; --core-2: #DDE3EA; --gap: #FFFFFF;
+  --phase-a: #C99500; --phase-b: #1F5FBF; --phase-c: #C72F2F;
+  --field-pos: #E0742A; --field-neg: #1A8C94; --field-line: rgba(21, 32, 43, .55);
+  --ok: #2E7D32; --ok-soft: #E3F1E4; --warn: #A65F00; --warn-soft: #FBEBD3;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", "Consolas", "SFMono-Regular", monospace;
+  --math: "STIX Two Text", "Cambria Math", "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E141A; --panel: #151E27; --panel-2: #1A2530; --ink: #E5ECF2; --muted: #93A3B4; --line: #2A3845;
+  --copper: #E38B3E; --copper-soft: #3A2817; --core: #33414F; --core-2: #263340; --gap: #0E141A;
+  --phase-a: #F1C232; --phase-b: #5F9DF2; --phase-c: #F26560;
+  --field-pos: #F38E44; --field-neg: #3CBAC1; --field-line: rgba(229, 236, 242, .55);
+  --ok: #63C46F; --ok-soft: #173020; --warn: #F2AA45; --warn-soft: #3A2A12; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0E141A; --panel: #151E27; --panel-2: #1A2530; --ink: #E5ECF2; --muted: #93A3B4; --line: #2A3845;
+  --copper: #E38B3E; --copper-soft: #3A2817; --core: #33414F; --core-2: #263340; --gap: #0E141A;
+  --phase-a: #F1C232; --phase-b: #5F9DF2; --phase-c: #F26560;
+  --field-pos: #F38E44; --field-neg: #3CBAC1; --field-line: rgba(229, 236, 242, .55);
+  --ok: #63C46F; --ok-soft: #173020; --warn: #F2AA45; --warn-soft: #3A2A12; color-scheme: dark }
+
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px }
+.wrap { max-width: 1320px; margin: 0 auto; display: grid; gap: 18px }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: .01em }
+h1 { font-size: clamp(30px, 4vw, 44px); line-height: 1.02 }
+h2 { font-size: 21px; line-height: 1.15 }
+h3 { font-size: 17px }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--copper) }
+.lede { color: var(--muted); max-width: 70ch; margin: 6px 0 0 }
+.m { font-family: var(--math); font-size: 1.08em; white-space: nowrap }
+.m i { font-style: italic }
+.fr { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 .15em; line-height: 1.15 }
+.fr > span:first-child { border-bottom: 1px solid currentColor; padding: 0 .2em }
+.fr > span:last-child { padding: 0 .2em }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px }
+.tabs { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 4px; gap: 4px }
+.tabs button { font: 600 15px var(--body); color: var(--muted); background: none; border: 0; padding: 8px 14px; border-radius: 7px; cursor: pointer }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg) }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px }
+
+.layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px }
+.controls { display: grid; gap: 16px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px) }
+.group { display: grid; gap: 12px }
+.group + .group { border-top: 1px solid var(--line); padding-top: 14px }
+.group-title { font: 600 11.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+.ctl { display: grid; gap: 4px }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 600; font-size: 14.5px }
+.ctl output { font: 600 14px var(--mono); color: var(--copper); font-variant-numeric: tabular-nums; white-space: nowrap }
+.ctl small { color: var(--muted); font-size: 12.5px; line-height: 1.35 }
+input[type="range"] { width: 100%; accent-color: var(--copper) }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px }
+.seg button { font: 600 14px var(--mono); padding: 7px 0; border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--copper); border-color: var(--copper); color: #fff }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.btn { font: 600 14px var(--body); padding: 7px 12px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); cursor: pointer }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+select { font: 500 14px var(--body); padding: 6px 8px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink) }
+
+.guide ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: paso }
+.guide li { display: grid; grid-template-columns: 24px 1fr; gap: 8px; font-size: 14px; line-height: 1.4; counter-increment: paso }
+.guide li::before { content: counter(paso); width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  font: 600 12px var(--mono); border: 1.5px solid var(--line); color: var(--muted) }
+.guide li.done::before { content: "✓"; background: var(--ok); border-color: var(--ok); color: #fff }
+.guide li.done { color: var(--muted) }
+
+.stage { display: grid; gap: 18px; min-width: 0 }
+.top-row { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px }
+.machine-wrap { display: grid; gap: 10px; min-width: 0; align-content: start }
+canvas { display: block; width: 100%; max-width: 100% }
+#cv-machine { aspect-ratio: 1; max-width: 600px; margin: 0 auto }
+#cv-phasor { aspect-ratio: 1; max-width: 300px; margin: 0 auto }
+#cv-scope { aspect-ratio: 3.2; min-height: 180px }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); justify-content: center }
+.legend span { display: inline-flex; align-items: center; gap: 6px }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block }
+.side { display: grid; gap: 14px; align-content: start; min-width: 0 }
+.badges { display: flex; gap: 8px; flex-wrap: wrap }
+.badge { font: 600 13px var(--mono); padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: var(--panel-2) }
+.badge.ok { color: var(--ok); border-color: var(--ok); background: var(--ok-soft) }
+.badge.warn { color: var(--warn); border-color: var(--warn); background: var(--warn-soft) }
+.story { font-size: 15px; line-height: 1.55; margin: 0 }
+.story b { font-weight: 700 }
+
+.plate { border: 1.5px solid var(--ink); border-radius: 8px; overflow: hidden }
+.plate-head { background: var(--ink); color: var(--bg); font: 600 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; padding: 6px 10px; display: flex; justify-content: space-between }
+.plate dl { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) }
+.plate div { padding: 7px 10px; border-top: 1px solid var(--line); border-right: 1px solid var(--line); min-width: 0 }
+.plate div:nth-child(2n) { border-right: 0 }
+.plate dt { font-size: 12px; color: var(--muted) }
+.plate dd { margin: 0; font: 600 16px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+
+.scope-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px }
+.scope-head p { margin: 0; color: var(--muted); font-size: 13.5px }
+
+.chain { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px }
+.eq { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; position: relative }
+.eq .num { font: 600 11px var(--mono); color: var(--muted); letter-spacing: .08em }
+.eq .law { font-size: 13px; color: var(--copper); font-weight: 600 }
+.eq .formula { font-size: 19px; min-height: 40px; display: flex; align-items: center; flex-wrap: wrap }
+.eq .subst { font: 500 12.5px var(--mono); color: var(--muted); overflow-wrap: anywhere }
+.eq .val { font: 600 22px var(--mono); font-variant-numeric: tabular-nums }
+.eq .why { font-size: 13.5px; color: var(--muted); line-height: 1.4 }
+.eq .deps { display: flex; gap: 5px; flex-wrap: wrap }
+.eq .deps span { font: 600 11px var(--mono); padding: 2px 6px; border-radius: 5px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted) }
+.eq.hit { animation: hit 1.4s ease-out }
+.eq.hit .val { color: var(--copper) }
+@keyframes hit { 0% { border-color: var(--copper); box-shadow: 0 0 0 3px var(--copper-soft) } 100% { border-color: var(--line); box-shadow: 0 0 0 0 transparent } }
+.eq.warnc { border-color: var(--warn) }
+.note { color: var(--muted); font-size: 13px; margin: 0 }
+
+@media (max-width: 1080px) {
+  .layout { grid-template-columns: minmax(0, 1fr) }
+  .controls { position: static; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
+  .group + .group { border-top: 0; padding-top: 0 }
+}
+@media (max-width: 760px) { .top-row { grid-template-columns: minmax(0, 1fr) } #cv-scope { aspect-ratio: 2 } }
+@media (prefers-reduced-motion: reduce) { .eq.hit { animation: none } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Campos Electromagnéticos · Unimeta</div>
+      <h1>Laboratorio del campo giratorio</h1>
+      <p class="lede">Tres corrientes desfasadas 120° crean un campo que gira. Mueva los controles y observe cómo cambian el campo, la velocidad, la tensión inducida y el par, y cómo cada ecuación alimenta a la siguiente.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Modo de la máquina">
+      <button id="tab-motor" role="tab" aria-selected="true" data-mode="motor">Motor de inducción</button>
+      <button id="tab-gen" role="tab" aria-selected="false" data-mode="gen">Generador: lograr 60 Hz</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel controls" aria-label="Controles">
+      <div class="group">
+        <div class="group-title" id="grp-supply">Alimentación</div>
+        <div class="ctl" data-show="motor">
+          <label for="in-f">Frecuencia de la red <output id="out-f"></output></label>
+          <input id="in-f" type="range" min="5" max="120" step="0.5" value="60">
+          <small>En Colombia la red es de 60 Hz. Un variador de frecuencia permite cambiarla.</small>
+        </div>
+        <div class="ctl" data-show="gen">
+          <label for="in-n">Velocidad de la turbina <output id="out-n"></output></label>
+          <input id="in-n" type="range" min="0" max="4000" step="10" value="1500">
+          <small id="hint-n"></small>
+        </div>
+        <div class="ctl">
+          <label>Número de polos <output id="out-p"></output></label>
+          <div class="seg" id="seg-p" role="group" aria-label="Número de polos">
+            <button id="p2" data-p="2" aria-pressed="false">2</button><button id="p4" data-p="4" aria-pressed="true">4</button>
+            <button id="p6" data-p="6" aria-pressed="false">6</button><button id="p8" data-p="8" aria-pressed="false">8</button>
+          </div>
+        </div>
+      </div>
+      <div class="group">
+        <div class="group-title">Devanado y núcleo</div>
+        <div class="ctl">
+          <label for="in-N">Vueltas por fase, N <output id="out-N"></output></label>
+          <input id="in-N" type="range" min="20" max="400" step="5" value="100">
+        </div>
+        <div class="ctl" data-show="motor">
+          <label for="in-I">Corriente por fase, I <output id="out-I"></output></label>
+          <input id="in-I" type="range" min="1" max="25" step="0.5" value="10">
+        </div>
+        <div class="ctl" data-show="gen">
+          <label for="in-If"><span>Corriente de excitación, I<sub>f</sub></span> <output id="out-If"></output></label>
+          <input id="in-If" type="range" min="0.5" max="10" step="0.1" value="4">
+          <small>Alimenta las bobinas de los polos del rotor (150 vueltas por polo).</small>
+        </div>
+        <div class="ctl">
+          <label for="in-g">Entrehierro, g <output id="out-g"></output></label>
+          <input id="in-g" type="range" min="0.3" max="3" step="0.1" value="1">
+        </div>
+      </div>
+      <div class="group" data-show="motor">
+        <div class="group-title">Carga mecánica</div>
+        <div class="ctl">
+          <label for="in-T">Par de la carga <output id="out-T"></output></label>
+          <input id="in-T" type="range" min="0" max="120" step="1" value="30">
+          <small>Lo que exige la bomba o el ventilador acoplado al eje.</small>
+        </div>
+      </div>
+      <div class="group">
+        <div class="group-title">Animación</div>
+        <div class="row">
+          <button class="btn primary" id="btn-play" type="button">Pausar</button>
+          <label for="in-slow" class="note">Cámara lenta</label>
+          <select id="in-slow">
+            <option value="30">1/30</option><option value="60">1/60</option><option value="120" selected>1/120</option>
+            <option value="240">1/240</option><option value="600">1/600</option>
+          </select>
+          <button class="btn" id="btn-reset" type="button">Restablecer</button>
+        </div>
+        <small class="note">A 60 Hz el campo da 60 vueltas eléctricas por segundo; la cámara lenta permite seguirlo con la vista.</small>
+      </div>
+      <div class="group guide">
+        <div class="group-title">Recorrido guiado</div>
+        <ol id="guide"></ol>
+      </div>
+    </aside>
+
+    <main class="stage">
+      <section class="top-row">
+        <div class="panel machine-wrap">
+          <div class="scope-head"><h2 id="machine-title">Corte transversal del motor</h2><p id="machine-sub"></p></div>
+          <canvas id="cv-machine" role="img" aria-label="Corte de la máquina con el campo magnético girando"></canvas>
+          <div class="legend">
+            <span><i class="sw" style="background:var(--phase-a)"></i>Fase A</span>
+            <span><i class="sw" style="background:var(--phase-b)"></i>Fase B</span>
+            <span><i class="sw" style="background:var(--phase-c)"></i>Fase C</span>
+            <span><i class="sw" style="background:var(--field-pos)"></i>B sale del rotor (N)</span>
+            <span><i class="sw" style="background:var(--field-neg)"></i>B entra al rotor (S)</span>
+            <span>⊙ / ⊗ corriente que sale / entra</span>
+          </div>
+        </div>
+        <div class="side">
+          <div class="panel" style="display:grid;gap:10px">
+            <div class="badges" id="badges"></div>
+            <p class="story" id="story"></p>
+          </div>
+          <div class="panel" style="display:grid;gap:8px">
+            <h3>Suma de los tres campos</h3>
+            <canvas id="cv-phasor" role="img" aria-label="Los campos de las tres fases y su suma, que gira con magnitud constante"></canvas>
+            <p class="note" id="phasor-note">Cada fase produce un campo que solo crece y decrece sobre su propio eje. La suma de las tres tiene magnitud constante (1.5 veces el de una fase) y gira.</p>
+          </div>
+          <div class="plate">
+            <div class="plate-head"><span>Placa de datos</span><span id="plate-mode">Motor</span></div>
+            <dl id="plate"></dl>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="scope-head"><h2 id="scope-title">Osciloscopio: corrientes de fase</h2><p id="scope-sub"></p></div>
+        <canvas id="cv-scope" role="img" aria-label="Señales de las tres fases en el tiempo"></canvas>
+      </section>
+
+      <section style="display:grid;gap:10px">
+        <div class="scope-head"><h2>Cadena de ecuaciones</h2><p>Cada tarjeta usa resultados de las anteriores. Al mover un control se resaltan las que cambian.</p></div>
+        <div class="chain" id="chain"></div>
+        <p class="note">Modelo didáctico simplificado: corriente impuesta por fase, factor de devanado k<sub>w</sub> = 0.92, factor de potencia 0.85, núcleo de diámetro D = 16 cm y longitud L = 20 cm, saturación suave hacia 1.6 T y curva de par de Kloss con par máximo 2.5 veces el nominal.</p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------------ constantes del modelo
+  const MU0 = 4 * Math.PI * 1e-7, KW = 0.92, DIAM = 0.16, LONG = 0.20, COSPHI = 0.85, BSAT = 1.6, NF = 150, SK = 0.15, TMAXR = 2.5;
+  const DEF = { mode: "motor", f: 60, p: 4, N: 100, I: 10, g: 1.0, T: 30, n: 1500, If: 4 };
+  const S = Object.assign({}, DEF);
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let playing = !reduced, slow = 120;
+
+  const fmt = (v, d = 1) => Number.isFinite(v) ? v.toLocaleString("es-CO", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—";
+  const $ = id => document.getElementById(id);
+
+  // ------------------------------------------------------------------ modelo físico (función pura)
+  function model(s) {
+    const p = s.p;
+    let F, f;
+    if (s.mode === "motor") { F = 1.5 * (4 / Math.PI) * (KW * s.N / p) * Math.SQRT2 * s.I; f = s.f; }
+    else { F = NF * s.If; f = p * s.n / 120; }
+    const Blin = MU0 * F / (s.g * 1e-3);
+    const B = BSAT * Math.tanh(Blin / BSAT);
+    const Phi = 2 * B * DIAM * LONG / p;
+    const E = 4.44 * f * KW * s.N * Phi;
+    const VL = Math.sqrt(3) * E;
+    const ns = 120 * f / p, ws = 2 * Math.PI * ns / 60;
+    const r = { F, Blin, B, sat: Blin > 1.25, Phi, E, VL, f, ns, ws };
+    if (s.mode === "motor") {
+      const Pag = 3 * E * s.I * COSPHI, tnom = ws > 0 ? Pag / ws : 0, tmax = TMAXR * tnom, tload = s.T;
+      let sl, stall = false;
+      if (tload <= 0) sl = 0;
+      else if (tload >= tmax) { sl = 1; stall = true; }
+      else { const a = tmax / tload; sl = SK * (a - Math.sqrt(a * a - 1)); }
+      const n = ns * (1 - sl), wr = 2 * Math.PI * n / 60;
+      Object.assign(r, { Pag, tnom, tmax, tload, s: sl, stall, n, wr, Pmec: tload * wr, fr: sl * f });
+    } else Object.assign(r, { n: s.n, wr: 2 * Math.PI * s.n / 60 });
+    return r;
+  }
+  window.__model = model;   // para pruebas desde la consola
+
+  // ------------------------------------------------------------------ colores desde los tokens
+  let C = {};
+  function readTokens() {
+    const cs = getComputedStyle(document.documentElement);
+    ["bg", "panel", "panel-2", "ink", "muted", "line", "copper", "core", "core-2", "gap", "phase-a", "phase-b", "phase-c", "field-pos", "field-neg", "field-line", "ok", "warn"]
+      .forEach(k => C[k] = cs.getPropertyValue("--" + k).trim());
+  }
+  readTokens();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readTokens);
+  new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  const PH = () => [C["phase-a"], C["phase-b"], C["phase-c"]];
+
+  // ------------------------------------------------------------------ lienzos con resolución nítida
+  function setupCanvas(cv) {
+    const ctx = cv.getContext("2d");
+    const fit = () => { const dpr = Math.min(2, window.devicePixelRatio || 1); const w = cv.clientWidth, h = cv.clientHeight;
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); cv._w = w; cv._h = h; };
+    new ResizeObserver(fit).observe(cv); fit();
+    return ctx;
+  }
+  const cvM = $("cv-machine"), cvP = $("cv-phasor"), cvS = $("cv-scope");
+  const ctxM = setupCanvas(cvM), ctxP = setupCanvas(cvP), ctxS = setupCanvas(cvS);
+
+  function mix(hexA, hexB, t) {   // interpola dos colores #rrggbb
+    const a = parseInt(hexA.slice(1), 16), b = parseInt(hexB.slice(1), 16);
+    const r = (a >> 16) + ((b >> 16) - (a >> 16)) * t, g = ((a >> 8) & 255) + (((b >> 8) & 255) - ((a >> 8) & 255)) * t, bl = (a & 255) + ((b & 255) - (a & 255)) * t;
+    return `rgb(${r | 0},${g | 0},${bl | 0})`;
+  }
+  function arrowHead(ctx, x, y, ang, size, color) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.fillStyle = color;
+    ctx.beginPath(); ctx.moveTo(size, 0); ctx.lineTo(-size * 0.7, size * 0.6); ctx.lineTo(-size * 0.7, -size * 0.6); ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  function symbol(ctx, x, y, r, out, color) {
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = Math.max(1, r * 0.22);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.stroke();
+    if (out) { ctx.beginPath(); ctx.arc(x, y, r * 0.3, 0, 2 * Math.PI); ctx.fill(); }
+    else { const k = r * 0.62; ctx.beginPath(); ctx.moveTo(x - k, y - k); ctx.lineTo(x + k, y + k); ctx.moveTo(x - k, y + k); ctx.lineTo(x + k, y - k); ctx.stroke(); }
+  }
+
+  // ------------------------------------------------------------------ estado de la animación
+  let M = model(S), thE = 0, thR = 0, wrDisp = M.wr, last = null;
+  const PHASE_SHIFT = [0, 2 * Math.PI / 3, 4 * Math.PI / 3];
+  const BELT = [[0, 1], [2, -1], [1, 1], [0, -1], [2, 1], [1, -1]];   // A, −C, B, −A, C, −B (fase, signo)
+
+  // ------------------------------------------------------------------ dibujo: corte de la máquina
+  function drawMachine() {
+    const ctx = ctxM, W = cvM._w, H = cvM._h; if (!W) return;
+    ctx.clearRect(0, 0, W, H);
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 * 0.97, pp = S.p / 2;
+    const Ro = R, Rsi = 0.655 * R, Rr = 0.6 * R, Bn = Math.min(1, M.B / 1.2);
+    const fieldAng = thE - Math.PI / 2;                          // ángulo eléctrico del eje N del campo
+    const Bat = th => Math.cos(pp * th - fieldAng);               // B radial normalizada en el entrehierro
+    const P = (r, a) => [cx + r * Math.cos(a), cy - r * Math.sin(a)];
+
+    // núcleo del estator
+    ctx.fillStyle = C.core; ctx.beginPath(); ctx.arc(cx, cy, Ro, 0, 2 * Math.PI); ctx.arc(cx, cy, Rsi, 0, 2 * Math.PI, true); ctx.fill("evenodd");
+    // líneas de flujo de retorno por el yugo del estator
+    drawFluxLines(ctx, cx, cy, pp, fieldAng, 0.84 * R, +1, R);
+    // ranuras con las corrientes de fase
+    const nSl = 12 * pp, slotW = 0.55 * (2 * Math.PI / nSl);
+    const curr = PHASE_SHIFT.map(sh => Math.cos(thE - sh));
+    for (let k = 0; k < nSl; k++) {
+      const th = (k + 0.5) * 2 * Math.PI / nSl, el = ((pp * th) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+      const belt = Math.floor(((el + Math.PI / 6) % (2 * Math.PI)) / (Math.PI / 3)) % 6;
+      const [ph, sg] = BELT[belt], v = sg * curr[ph];
+      // las coordenadas del lienzo tienen el eje y hacia abajo: dibujamos con ángulos negativos
+      ctx.save(); ctx.globalAlpha = 0.25 + 0.75 * Math.abs(v); ctx.fillStyle = PH()[ph];
+      ctx.beginPath(); ctx.arc(cx, cy, 0.79 * R, -th - slotW / 2, -th + slotW / 2);
+      ctx.arc(cx, cy, Rsi + 0.004 * R, -th + slotW / 2, -th - slotW / 2, true); ctx.closePath(); ctx.fill(); ctx.restore();
+      const [sx, sy] = P(0.725 * R, th), sr = Math.min(0.03 * R, slotW * 0.72 * R * 0.36);
+      if (sr > 3 && Math.abs(v) > 0.15) symbol(ctx, sx, sy, sr, v > 0, C.bg);
+    }
+    // entrehierro coloreado según B
+    ctx.fillStyle = C.gap; ctx.beginPath(); ctx.arc(cx, cy, Rsi, 0, 2 * Math.PI); ctx.fill();
+    const seg = 180;
+    for (let k = 0; k < seg; k++) {
+      const a0 = k * 2 * Math.PI / seg, a1 = a0 + 2 * Math.PI / seg + 0.002, v = Bat((a0 + a1) / 2) * Bn;
+      ctx.fillStyle = v >= 0 ? C["field-pos"] : C["field-neg"]; ctx.globalAlpha = Math.min(1, Math.abs(v) * 1.1);
+      ctx.beginPath(); ctx.arc(cx, cy, Rsi, -a1, -a0); ctx.arc(cx, cy, Rr, -a0, -a1, true); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // rotor
+    ctx.fillStyle = C["core-2"]; ctx.beginPath(); ctx.arc(cx, cy, Rr, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke();
+    if (S.mode === "motor") {
+      const nb = 28;
+      for (let k = 0; k < nb; k++) {
+        const a = thR + k * 2 * Math.PI / nb, [bx, by] = P(0.53 * R, a), v = M.stall ? 0 : Bat(a) * Math.sign(M.s) * Math.min(1, M.s * 12 + 0.25);
+        ctx.fillStyle = C.copper; ctx.globalAlpha = 0.35 + 0.65 * Math.abs(v);
+        ctx.beginPath(); ctx.arc(bx, by, 0.028 * R, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1;
+        if (Math.abs(v) > 0.3 && R > 160) symbol(ctx, bx, by, 0.016 * R, v < 0, C.bg);
+      }
+    } else {
+      for (let k = 0; k < S.p; k++) {
+        const a = thR + k * 2 * Math.PI / S.p, w = Math.PI / S.p * 0.62, north = k % 2 === 0;
+        ctx.fillStyle = north ? C["field-pos"] : C["field-neg"]; ctx.globalAlpha = 0.35 + 0.5 * Bn;
+        ctx.beginPath(); ctx.arc(cx, cy, Rr * 0.97, -a - w, -a + w); ctx.arc(cx, cy, Rr * 0.45, -a + w * 0.7, -a - w * 0.7, true); ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 1; const [lx, ly] = P(Rr * 0.75, a);
+        ctx.fillStyle = C.bg; ctx.font = `700 ${Math.max(11, R * 0.06)}px ${getComputedStyle(document.body).getPropertyValue("--display")}`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(north ? "N" : "S", lx, ly);
+      }
+    }
+    // líneas de flujo dentro del rotor
+    drawFluxLines(ctx, cx, cy, pp, fieldAng, 0.5 * R, -1, R);
+    // flechas radiales de B en el entrehierro
+    const na = 8 * S.p;
+    for (let k = 0; k < na; k++) {
+      const a = k * 2 * Math.PI / na, v = Bat(a) * Bn; if (Math.abs(v) < 0.12) continue;
+      const rm = (Rsi + Rr) / 2, len = 0.06 * R * Math.abs(v), r0 = rm - Math.sign(v) * len / 2, r1 = rm + Math.sign(v) * len / 2;
+      const [x0, y0] = P(r0, a), [x1, y1] = P(r1, a);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      arrowHead(ctx, x1, y1, Math.atan2(y1 - y0, x1 - x0), 0.012 * R + 2, C.ink);
+    }
+    // eje, marca del rotor y marca del campo
+    const [mx, my] = P(Rr * 0.93, thR);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(mx, my); ctx.stroke();
+    ctx.fillStyle = C.panel; ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, 0.075 * R, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+    const fMech = fieldAng / pp, [fx, fy] = P(Ro * 0.995, fMech), [fx2, fy2] = P(Ro * 0.9, fMech);
+    ctx.strokeStyle = C["field-pos"]; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx2, fy2); ctx.stroke();
+  }
+
+  // Curvas entre polos vecinos. sign = −1: dentro del rotor (de S a N); +1: yugo del estator (de N a S).
+  function drawFluxLines(ctx, cx, cy, pp, fieldAng, r0, sign, R) {
+    const pitch = Math.PI / pp, P = (r, a) => [cx + r * Math.cos(a), cy - r * Math.sin(a)];
+    ctx.lineWidth = 1.3; ctx.strokeStyle = C["field-line"];
+    for (let m = 0; m < 2 * pp; m++) {
+      const aN = (fieldAng + m * 2 * Math.PI) / pp;               // centros de polo N (para m < pp) repetidos
+      if (m >= pp) break;
+      for (const side of [-1, 1]) {
+        const aS = aN + side * pitch, mid = (aN + aS) / 2;
+        for (const frac of [0.2, 0.36, 0.5]) {
+          const w = frac * pitch;
+          const a1 = mid - Math.sign(aS - aN) * w, a2 = mid + Math.sign(aS - aN) * w;   // a1 cerca de N, a2 cerca de S
+          let rc;
+          if (sign < 0) rc = r0 * Math.max(0.02, Math.cos(w) * 0.55);
+          else rc = Math.min(0.96 * R, r0 * (1 + (1 - Math.cos(w)) * 0.35));
+          const [x1, y1] = P(r0, a1), [x2, y2] = P(r0, a2), [xc, yc] = P(rc, mid);
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(xc, yc, x2, y2); ctx.stroke();
+          // dirección: en el rotor el flujo va de S (entra) a N (sale); en el yugo, de N a S
+          const t = 0.5, bx = (1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * xc + t * t * x2, by = (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * yc + t * t * y2;
+          let dx = 2 * (1 - t) * (xc - x1) + 2 * t * (x2 - xc), dy = 2 * (1 - t) * (yc - y1) + 2 * t * (y2 - yc);
+          if (sign < 0) { dx = -dx; dy = -dy; }
+          arrowHead(ctx, bx, by, Math.atan2(dy, dx), 0.011 * R + 2, C["field-line"]);
+        }
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------ dibujo: suma fasorial
+  function drawPhasor() {
+    const ctx = ctxP, W = cvP._w, H = cvP._h; if (!W) return;
+    ctx.clearRect(0, 0, W, H);
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 * 0.62, cols = PH(), names = ["A", "B", "C"];
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = C.line; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(cx, cy, R * 1.0, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = `600 12px ${getComputedStyle(document.body).getPropertyValue("--mono")}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    let sx = 0, sy = 0;
+    for (let k = 0; k < 3; k++) {
+      const ax = PHASE_SHIFT[k] - Math.PI / 2, ux = Math.cos(ax), uy = -Math.sin(ax), i = Math.cos(thE - PHASE_SHIFT[k]);
+      ctx.strokeStyle = cols[k]; ctx.globalAlpha = 0.35; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(cx - ux * R / 1.5 * 1.08, cy - uy * R / 1.5 * 1.08); ctx.lineTo(cx + ux * R / 1.5 * 1.08, cy + uy * R / 1.5 * 1.08); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+      ctx.fillStyle = cols[k]; ctx.fillText("eje " + names[k], cx + ux * (R / 1.5 * 1.08 + 18), cy + uy * (R / 1.5 * 1.08 + 18));
+      const ex = cx + ux * i * R / 1.5, ey = cy + uy * i * R / 1.5;
+      ctx.strokeStyle = cols[k]; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ex, ey); ctx.stroke();
+      if (Math.abs(i) > 0.08) arrowHead(ctx, ex, ey, Math.atan2(ey - cy, ex - cx), 7, cols[k]);
+      sx += ux * i; sy += uy * i;
+    }
+    const rx = cx + sx * R / 1.5, ry = cy + sy * R / 1.5;
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 4.5; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(rx, ry); ctx.stroke();
+    arrowHead(ctx, rx, ry, Math.atan2(ry - cy, rx - cx), 10, C.ink);
+    ctx.fillStyle = C.ink; ctx.fillText("B total", Math.max(30, Math.min(W - 30, rx + (rx - cx) * 0.22)), Math.max(10, Math.min(H - 10, ry + (ry - cy) * 0.22)));
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, 2 * Math.PI); ctx.fill();
+  }
+
+  // ------------------------------------------------------------------ dibujo: osciloscopio
+  function drawScope() {
+    const ctx = ctxS, W = cvS._w, H = cvS._h; if (!W) return;
+    ctx.clearRect(0, 0, W, H);
+    const padL = 54, padR = 14, padT = 12, padB = 30, pw = W - padL - padR, ph = H - padT - padB, cols = PH();
+    const f = Math.max(M.f, 0.5), Tw = 2 / f, mono = getComputedStyle(document.body).getPropertyValue("--mono");
+    const amp = S.mode === "motor" ? Math.SQRT2 * S.I : Math.SQRT2 * M.E, unit = S.mode === "motor" ? "A" : "V";
+    const X = t => padL + t / Tw * pw, Y = v => padT + ph / 2 - v * ph / 2 * 0.86;
+    ctx.font = `500 11px ${mono}`; ctx.fillStyle = C.muted; ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    // cuadrícula y ejes
+    for (let k = 0; k <= 8; k++) { const x = padL + k * pw / 8; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + ph); ctx.stroke(); }
+    for (const v of [-1, 0, 1]) { ctx.beginPath(); ctx.moveTo(padL, Y(v)); ctx.lineTo(padL + pw, Y(v)); ctx.stroke(); }
+    ctx.globalAlpha = 1; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ctx.fillText(`+${fmt(amp, 0)} ${unit}`, padL - 6, Y(1)); ctx.fillText("0", padL - 6, Y(0)); ctx.fillText(`−${fmt(amp, 0)} ${unit}`, padL - 6, Y(-1));
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (let k = 0; k <= 4; k++) { const t = k * Tw / 4; ctx.fillText(`${fmt(t * 1000, 1)} ms`, X(t), padT + ph + 8); }
+    // referencia de 60 Hz en modo generador
+    if (S.mode === "gen") {
+      ctx.setLineDash([5, 5]); ctx.strokeStyle = C.muted; ctx.lineWidth = 1.5; ctx.beginPath();
+      for (let j = 0; j <= 300; j++) { const t = j / 300 * Tw, y = Y(Math.cos(2 * Math.PI * 60 * t)); j ? ctx.lineTo(X(t), y) : ctx.moveTo(X(t), y); }
+      ctx.stroke(); ctx.setLineDash([]);
+      const t60 = 1 / 60; if (t60 <= Tw) { ctx.strokeStyle = C.ok; ctx.beginPath(); ctx.moveTo(X(t60), padT); ctx.lineTo(X(t60), padT + ph); ctx.stroke();
+        ctx.fillStyle = C.ok; ctx.textAlign = "left"; ctx.fillText("T de 60 Hz = 16.7 ms", X(t60) + 4, padT + 2); }
+    }
+    // tres fases
+    const phase0 = (S.mode === "motor") ? 0 : 0;
+    for (let k = 0; k < 3; k++) {
+      ctx.strokeStyle = cols[k]; ctx.lineWidth = 2.2; ctx.beginPath();
+      for (let j = 0; j <= 360; j++) { const t = j / 360 * Tw, y = Y(Math.cos(2 * Math.PI * f * t - PHASE_SHIFT[k] + phase0)); j ? ctx.lineTo(X(t), y) : ctx.moveTo(X(t), y); }
+      ctx.stroke();
+    }
+    // cursor del instante que muestra la animación
+    const tc = (((thE % (4 * Math.PI)) + 4 * Math.PI) % (4 * Math.PI)) / (2 * Math.PI * f);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(tc), padT); ctx.lineTo(X(tc), padT + ph); ctx.stroke();
+    for (let k = 0; k < 3; k++) { ctx.fillStyle = cols[k]; ctx.beginPath(); ctx.arc(X(tc), Y(Math.cos(thE - PHASE_SHIFT[k])), 4, 0, 2 * Math.PI); ctx.fill(); }
+  }
+
+  // ------------------------------------------------------------------ cadena de ecuaciones
+  const fr = (a, b) => `<span class="fr"><span>${a}</span><span>${b}</span></span>`;
+  const CHAIN = {
+    motor: [
+      { id: "F", law: "Ley de Ampère · fuerza magnetomotriz", deps: ["N", "I", "p"],
+        f: () => `<span class="m">ℱ = ${fr("3", "2")}${fr("4", "π")}${fr("<i>k</i><sub>w</sub> <i>N</i>", "<i>p</i>")}√2 <i>I</i></span>`,
+        s: () => `1.5 · 1.273 · (0.92·${S.N}/${S.p}) · 1.414 · ${fmt(S.I, 1)}`, v: () => `${fmt(M.F, 0)} A·vuelta`,
+        w: () => "Las tres fases juntas producen 1.5 veces la FMM de una sola. Más vueltas o más corriente, más FMM." },
+      { id: "B", law: "Circuito magnético · densidad de flujo", deps: ["N", "I", "p", "g"],
+        f: () => `<span class="m"><i>B</i> = ${fr("μ<sub>0</sub> ℱ", "<i>g</i>")}</span>`,
+        s: () => `4π×10⁻⁷ · ${fmt(M.F, 0)} / ${fmt(S.g, 1)}×10⁻³ = ${fmt(M.Blin, 2)} T (lineal)`, v: () => `${fmt(M.B, 3)} T`,
+        w: () => M.sat ? "El hierro se acerca a la saturación: B ya no crece en proporción a ℱ." : "Casi toda la FMM se gasta en el entrehierro: un entrehierro más grande da menos B." },
+      { id: "Phi", law: "Flujo por polo", deps: ["N", "I", "p", "g"],
+        f: () => `<span class="m">Φ = ${fr("2", "π")}<i>B</i> ${fr("π<i>DL</i>", "<i>p</i>")} = ${fr("2<i>BDL</i>", "<i>p</i>")}</span>`,
+        s: () => `2 · ${fmt(M.B, 3)} · 0.16 · 0.20 / ${S.p}`, v: () => `${fmt(M.Phi * 1000, 2)} mWb`,
+        w: () => "Con más polos, cada polo ocupa menos superficie del rotor y lleva menos flujo." },
+      { id: "E", law: "Ley de Faraday · tensión inducida por fase", deps: ["N", "I", "p", "g", "f"],
+        f: () => `<span class="m"><i>E</i> = 4.44 <i>f k</i><sub>w</sub> <i>N</i> Φ</span>`,
+        s: () => `4.44 · ${fmt(S.f, 1)} · 0.92 · ${S.N} · ${fmt(M.Phi, 5)}`, v: () => `${fmt(M.E, 1)} V`,
+        w: () => `El campo giratorio corta las propias bobinas e induce esta tensión; la red debe aplicar aproximadamente esa tensión por fase (≈ ${fmt(M.VL, 0)} V de línea).` },
+      { id: "ns", law: "Velocidad síncrona del campo", deps: ["f", "p"],
+        f: () => `<span class="m"><i>n</i><sub>s</sub> = ${fr("120 <i>f</i>", "<i>p</i>")}</span>`,
+        s: () => `120 · ${fmt(S.f, 1)} / ${S.p}`, v: () => `${fmt(M.ns, 0)} rpm`,
+        w: () => "Solo dependen de la frecuencia y del número de polos: las vueltas no cambian la velocidad." },
+      { id: "T", law: "Par nominal disponible", deps: ["N", "I", "p", "g", "f"],
+        f: () => `<span class="m">τ<sub>nom</sub> = ${fr("3 <i>E I</i> cos φ", "ω<sub>s</sub>")}</span>`,
+        s: () => `3 · ${fmt(M.E, 1)} · ${fmt(S.I, 1)} · 0.85 / ${fmt(M.ws, 1)}`, v: () => `${fmt(M.tnom, 1)} N·m`,
+        w: () => `Potencia que cruza el entrehierro dividida por la velocidad del campo. Par máximo: ${fmt(M.tmax, 1)} N·m.` },
+      { id: "s", law: "Deslizamiento y velocidad del rotor", deps: ["N", "I", "p", "g", "f", "T"],
+        f: () => `<span class="m"><i>n</i> = <i>n</i><sub>s</sub>(1 − <i>s</i>)</span>`,
+        s: () => M.stall ? `τ carga ${fmt(M.tload, 0)} ≥ τ máx ${fmt(M.tmax, 0)} N·m → s = 1` : `s = ${fmt(M.s * 100, 2)} % (curva de Kloss)`,
+        v: () => `${fmt(M.n, 0)} rpm`,
+        w: () => M.stall ? "La carga supera el par máximo: el motor se detiene." : `El rotor va ${fmt(M.ns - M.n, 0)} rpm más lento que el campo; por eso se inducen corrientes de ${fmt(M.fr, 2)} Hz en sus barras.` },
+      { id: "P", law: "Potencia mecánica en el eje", deps: ["N", "I", "p", "g", "f", "T"],
+        f: () => `<span class="m"><i>P</i> = τ ω = τ ${fr("2π <i>n</i>", "60")}</span>`,
+        s: () => `${fmt(M.tload, 0)} · 2π · ${fmt(M.n, 0)} / 60`, v: () => `${fmt(M.Pmec / 1000, 2)} kW`,
+        w: () => `Equivale a ${fmt(M.Pmec / 746, 1)} hp.` },
+    ],
+    gen: [
+      { id: "F", law: "Fuerza magnetomotriz de los polos del rotor", deps: ["If"],
+        f: () => `<span class="m">ℱ = <i>N</i><sub>f</sub> <i>I</i><sub>f</sub></span>`,
+        s: () => `150 · ${fmt(S.If, 1)}`, v: () => `${fmt(M.F, 0)} A·vuelta`, w: () => "La corriente de excitación convierte cada polo del rotor en un electroimán." },
+      { id: "B", law: "Densidad de flujo en el entrehierro", deps: ["If", "g"],
+        f: () => `<span class="m"><i>B</i> = ${fr("μ<sub>0</sub> ℱ", "<i>g</i>")}</span>`,
+        s: () => `4π×10⁻⁷ · ${fmt(M.F, 0)} / ${fmt(S.g, 1)}×10⁻³`, v: () => `${fmt(M.B, 3)} T`,
+        w: () => M.sat ? "El hierro se acerca a la saturación: subir la excitación ya rinde poco." : "Más excitación o menos entrehierro, más campo." },
+      { id: "Phi", law: "Flujo por polo", deps: ["If", "g", "p"],
+        f: () => `<span class="m">Φ = ${fr("2<i>BDL</i>", "<i>p</i>")}</span>`, s: () => `2 · ${fmt(M.B, 3)} · 0.16 · 0.20 / ${S.p}`,
+        v: () => `${fmt(M.Phi * 1000, 2)} mWb`, w: () => "Es el flujo que pasa por cada bobina del estator cuando un polo queda frente a ella." },
+      { id: "f", law: "Frecuencia de la tensión generada", deps: ["n", "p"],
+        f: () => `<span class="m"><i>f</i> = ${fr("<i>p n</i>", "120")}</span>`, s: () => `${S.p} · ${fmt(S.n, 0)} / 120`,
+        v: () => `${fmt(M.f, 2)} Hz`, w: () => `Para 60 Hz con ${S.p} polos se necesitan ${fmt(7200 / S.p, 0)} rpm.` },
+      { id: "E", law: "Ley de Faraday · tensión por fase", deps: ["n", "p", "N", "If", "g"],
+        f: () => `<span class="m"><i>E</i> = 4.44 <i>f k</i><sub>w</sub> <i>N</i> Φ</span>`,
+        s: () => `4.44 · ${fmt(M.f, 2)} · 0.92 · ${S.N} · ${fmt(M.Phi, 5)}`, v: () => `${fmt(M.E, 1)} V`,
+        w: () => "Las vueltas del estator multiplican la tensión: con el doble de vueltas, el doble de voltios." },
+      { id: "VL", law: "Tensión de línea (conexión en estrella)", deps: ["n", "p", "N", "If", "g"],
+        f: () => `<span class="m"><i>V</i><sub>L</sub> = √3 <i>E</i></span>`, s: () => `1.732 · ${fmt(M.E, 1)}`, v: () => `${fmt(M.VL, 1)} V`,
+        w: () => "Meta del reto: 220 V de línea a 60 Hz, como una red residencial trifásica." },
+    ],
+  };
+  function buildChain() {
+    const box = $("chain"); box.innerHTML = "";
+    CHAIN[S.mode].forEach((c, i) => {
+      const el = document.createElement("article"); el.className = "eq"; el.id = "eq-" + c.id;
+      el.innerHTML = `<div class="num">PASO ${i + 1}</div><div class="law">${c.law}</div><div class="formula">${c.f()}</div>
+        <div class="subst"></div><div class="val"></div><div class="why"></div>
+        <div class="deps">${c.deps.map(d => `<span>${depName(d)}</span>`).join("")}</div>`;
+      box.appendChild(el);
+    });
+  }
+  const depName = d => ({ N: "N", I: "I", p: "p", g: "g", f: "f", T: "τ carga", n: "n", If: "If" })[d];
+  function updateChain(changed) {
+    CHAIN[S.mode].forEach(c => {
+      const el = $("eq-" + c.id); if (!el) return;
+      el.querySelector(".subst").textContent = c.s(); el.querySelector(".val").textContent = c.v(); el.querySelector(".why").textContent = c.w();
+      el.classList.toggle("warnc", (c.id === "B" && M.sat) || (c.id === "s" && !!M.stall));
+      if (changed && c.deps.includes(changed)) { el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit"); }
+    });
+  }
+
+  // ------------------------------------------------------------------ textos, placa y guía
+  const GUIDE = {
+    motor: [
+      { t: "Deje la frecuencia de la red en 60 Hz y observe cómo la suma de las tres fases gira.", ok: s => Math.abs(s.f - 60) < 0.01 },
+      { t: "Cambie a 2 polos: el campo debe girar a 3600 rpm. Vuelva a 4 polos (1800 rpm).", ok: (s, v) => v.p2 },
+      { t: "Aumente las vueltas a 200 o más: siga cómo suben ℱ, B, Φ, E y el par en la cadena.", ok: s => s.N >= 200 },
+      { t: "Lleve el entrehierro a 2 mm o más: ¿qué le pasa a B y al par disponible?", ok: s => s.g >= 2 },
+      { t: "Suba el par de carga hasta que el motor se detenga y luego bájelo.", ok: (s, v) => v.stall },
+    ],
+    gen: [
+      { t: "Con 4 polos, ajuste la velocidad de la turbina hasta obtener 60 Hz (1800 rpm).", ok: s => s.p === 4 && Math.abs(model(s).f - 60) < 0.25 },
+      { t: "Cambie a 6 polos y encuentre de nuevo los 60 Hz. ¿Qué velocidad necesitó?", ok: s => s.p === 6 && Math.abs(model(s).f - 60) < 0.25 },
+      { t: "Sin tocar la velocidad, ajuste N o la excitación para obtener 220 V de línea (±5 V).", ok: s => Math.abs(model(s).f - 60) < 0.25 && Math.abs(model(s).VL - 220) < 5 },
+      { t: "Duplique las vueltas N y compruebe que la tensión E también se duplica.", ok: (s, v) => v.doubled },
+    ],
+  };
+  const visited = { p2: false, stall: false, doubled: false, baseN: null };
+  const doneSteps = { motor: new Set(), gen: new Set() };
+  function updateGuide() {
+    if (S.mode === "motor") { if (S.p === 2) visited.p2 = true; if (M.stall) visited.stall = true; }
+    if (S.mode === "gen") { if (visited.baseN === null) visited.baseN = S.N; if (S.N >= 2 * visited.baseN) visited.doubled = true; }
+    GUIDE[S.mode].forEach((g, i) => { if (g.ok(S, visited)) doneSteps[S.mode].add(i); });
+    $("guide").innerHTML = GUIDE[S.mode].map((g, i) => `<li class="${doneSteps[S.mode].has(i) ? "done" : ""}">${g.t}</li>`).join("");
+  }
+
+  function updateTexts() {
+    const b = [];
+    if (S.mode === "motor") {
+      b.push(`<span class="badge ${Math.abs(S.f - 60) < 0.01 ? "ok" : ""}">Red ${fmt(S.f, 1)} Hz${Math.abs(S.f - 60) < 0.01 ? " ✓" : ""}</span>`);
+      b.push(`<span class="badge">nₛ ${fmt(M.ns, 0)} rpm</span>`);
+      b.push(M.stall ? `<span class="badge warn">Motor detenido</span>` : `<span class="badge ok">s = ${fmt(M.s * 100, 2)} %</span>`);
+      if (M.sat) b.push(`<span class="badge warn">Saturación</span>`);
+      $("story").innerHTML = M.stall
+        ? `El par de la carga (<b>${fmt(M.tload, 0)} N·m</b>) supera el par máximo que el motor puede dar (<b>${fmt(M.tmax, 0)} N·m</b>). El rotor se frena hasta detenerse: el campo sigue girando a ${fmt(M.ns, 0)} rpm, pero no logra arrastrarlo. Reduzca la carga o aumente N o I.`
+        : `El estator recibe corriente trifásica de <b>${fmt(S.f, 1)} Hz</b>. Las tres fases suman un campo de magnitud constante que gira a <b>nₛ = ${fmt(M.ns, 0)} rpm</b>. El rotor gira a <b>${fmt(M.n, 0)} rpm</b>, un ${fmt(M.s * 100, 2)} % más lento: el campo «barre» las barras del rotor, induce en ellas corrientes de ${fmt(M.fr, 2)} Hz y esas corrientes, dentro del campo, producen el par de <b>${fmt(M.tload, 0)} N·m</b> que mueve la carga.${M.sat ? " Ojo: con esta FMM el hierro se satura." : ""}`;
+      $("machine-title").textContent = "Corte transversal del motor"; $("plate-mode").textContent = "Motor de inducción";
+      $("machine-sub").textContent = "La marca naranja exterior sigue al campo; la línea oscura, al rotor.";
+      $("scope-title").textContent = "Osciloscopio: corrientes de fase";
+      $("scope-sub").textContent = `Período T = 1/f = ${fmt(1000 / S.f, 2)} ms. El punto en cada curva es el instante que muestra la animación.`;
+      $("plate").innerHTML = plate([["Frecuencia", `${fmt(S.f, 1)} Hz`], ["Polos", S.p], ["Velocidad síncrona", `${fmt(M.ns, 0)} rpm`], ["Velocidad del rotor", `${fmt(M.n, 0)} rpm`],
+        ["Deslizamiento", `${fmt(M.s * 100, 2)} %`], ["B entrehierro", `${fmt(M.B, 3)} T`], ["Tensión de línea", `${fmt(M.VL, 0)} V`], ["Corriente", `${fmt(S.I, 1)} A`],
+        ["Par de carga", `${fmt(M.tload, 0)} N·m`], ["Potencia", `${fmt(M.Pmec / 1000, 2)} kW`]]);
+    } else {
+      const ok60 = Math.abs(M.f - 60) < 0.25, ok220 = Math.abs(M.VL - 220) < 5;
+      b.push(`<span class="badge ${ok60 ? "ok" : ""}">f = ${fmt(M.f, 2)} Hz ${ok60 ? "✓ 60 Hz" : "→ meta 60 Hz"}</span>`);
+      b.push(`<span class="badge ${ok220 ? "ok" : ""}">V línea ${fmt(M.VL, 0)} V ${ok220 ? "✓ 220 V" : "→ meta 220 V"}</span>`);
+      if (M.sat) b.push(`<span class="badge warn">Saturación</span>`);
+      const need = 7200 / S.p;
+      $("story").innerHTML = `La turbina hace girar el rotor a <b>${fmt(S.n, 0)} rpm</b>. Sus <b>${S.p} polos</b> pasan frente a cada bobina del estator ${S.p / 2} veces por vuelta, así que la tensión inducida tiene <b>f = p·n/120 = ${fmt(M.f, 2)} Hz</b>. `
+        + (ok60 ? "¡Frecuencia de red lograda! " : `Para 60 Hz con ${S.p} polos necesita <b>${fmt(need, 0)} rpm</b>${S.n < need ? " (acelere)" : " (frene)"}. `)
+        + `Cada fase genera <b>${fmt(M.E, 1)} V</b>; en estrella, ${fmt(M.VL, 0)} V de línea. ${ok220 ? "Tensión de 220 V lograda." : "Las vueltas N y la excitación fijan la tensión; la velocidad fija la frecuencia."}`;
+      $("machine-title").textContent = "Corte transversal del generador"; $("plate-mode").textContent = "Generador síncrono";
+      $("machine-sub").textContent = "El rotor lleva los polos; el campo gira con él.";
+      $("hint-n").textContent = `Con ${S.p} polos, 60 Hz se logran a ${fmt(need, 0)} rpm.`;
+      $("scope-title").textContent = "Osciloscopio: tensiones generadas";
+      $("scope-sub").textContent = `Período T = ${M.f > 0 ? fmt(1000 / M.f, 2) + " ms" : "—"}. La curva punteada es una señal de 60 Hz para comparar.`;
+      $("plate").innerHTML = plate([["Frecuencia", `${fmt(M.f, 2)} Hz`], ["Polos", S.p], ["Velocidad", `${fmt(S.n, 0)} rpm`], ["Vueltas por fase", S.N],
+        ["Excitación", `${fmt(S.If, 1)} A`], ["B entrehierro", `${fmt(M.B, 3)} T`], ["Flujo por polo", `${fmt(M.Phi * 1000, 2)} mWb`], ["E por fase", `${fmt(M.E, 1)} V`],
+        ["Tensión de línea", `${fmt(M.VL, 1)} V`], ["Período", M.f > 0 ? `${fmt(1000 / M.f, 2)} ms` : "—"]]);
+    }
+    $("badges").innerHTML = b.join("");
+  }
+  const plate = rows => rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+
+  // ------------------------------------------------------------------ controles
+  const INPUTS = { f: "in-f", n: "in-n", N: "in-N", I: "in-I", If: "in-If", g: "in-g", T: "in-T" };
+  function syncOutputs() {
+    $("out-f").textContent = `${fmt(S.f, 1)} Hz`; $("out-n").textContent = `${fmt(S.n, 0)} rpm`; $("out-N").textContent = S.N;
+    $("out-I").textContent = `${fmt(S.I, 1)} A`; $("out-If").textContent = `${fmt(S.If, 1)} A`; $("out-g").textContent = `${fmt(S.g, 1)} mm`;
+    $("out-T").textContent = `${fmt(S.T, 0)} N·m`; $("out-p").textContent = `${S.p} polos`;
+    document.querySelectorAll("#seg-p button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.p === S.p)));
+    document.querySelectorAll("[data-show]").forEach(el => el.hidden = el.dataset.show !== S.mode);
+    Object.entries(INPUTS).forEach(([k, id]) => { if (+$(id).value !== S[k]) $(id).value = S[k]; });
+  }
+  function update(changed) { M = model(S); syncOutputs(); updateTexts(); updateChain(changed); updateGuide(); if (!playing) drawAll(); }
+  Object.entries(INPUTS).forEach(([k, id]) => $(id).addEventListener("input", e => { S[k] = +e.target.value; update(k); }));
+  document.querySelectorAll("#seg-p button").forEach(b => b.addEventListener("click", () => { S.p = +b.dataset.p; update("p"); }));
+  document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+    S.mode = b.dataset.mode; document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+    M = model(S); wrDisp = M.wr; buildChain(); update(null);
+  }));
+  $("btn-play").addEventListener("click", () => { playing = !playing; $("btn-play").textContent = playing ? "Pausar" : "Reanudar"; last = null; });
+  $("in-slow").addEventListener("change", e => slow = +e.target.value);
+  $("btn-reset").addEventListener("click", () => { const m = S.mode; Object.assign(S, DEF, { mode: m }); M = model(S); wrDisp = M.wr; update(null); });
+
+  // ------------------------------------------------------------------ bucle de animación
+  function drawAll() { drawMachine(); drawPhasor(); drawScope(); }
+  function frame(ts) {
+    const dt = last === null ? 0 : Math.min(0.05, (ts - last) / 1000); last = ts;
+    if (playing) {
+      const dts = dt / slow;
+      wrDisp += (M.wr - wrDisp) * (1 - Math.exp(-dt / 0.7));     // el rotor acelera o frena con inercia
+      thR += wrDisp * dts;
+      if (S.mode === "motor") thE += 2 * Math.PI * M.f * dts;
+      else thE = (S.p / 2) * thR + Math.PI / 2;                   // en el generador el campo lo lleva el rotor
+      thE %= 1e6; thR %= 1e6;
+    }
+    drawAll();
+    requestAnimationFrame(frame);
+  }
+  if (!playing) $("btn-play").textContent = "Reanudar";
+  thE = 0.9; thR = 0.3;
+  buildChain(); update(null); drawAll();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
